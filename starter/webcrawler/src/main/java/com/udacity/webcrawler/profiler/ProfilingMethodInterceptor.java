@@ -36,21 +36,25 @@ final class ProfilingMethodInterceptor implements InvocationHandler {
     //       ProfilingState methods.
 
     Object result;
-    ZonedDateTime start = ZonedDateTime.now(clock);
+
+    boolean hasAnnotation = method.isAnnotationPresent(Profiled.class);
+
+    ZonedDateTime start = hasAnnotation ? ZonedDateTime.now(clock): null;
 
     try {
 
       result = method.invoke(delegate, args);
 
     } catch (InvocationTargetException invocationTargetException) {
-
       throw invocationTargetException.getTargetException();
-
+    } catch (IllegalAccessException illegalAccessException) {
+      throw new RuntimeException(illegalAccessException);
     } finally {
-      ZonedDateTime end = ZonedDateTime.now(clock);
-      state.record(delegate.getClass(), method, Duration.between(start, end));
+        if (hasAnnotation) {
+          ZonedDateTime end = ZonedDateTime.now(clock);
+          state.record(delegate.getClass(), method, Duration.between(start, end));
+        }
     }
-
     return result;
   }
 
